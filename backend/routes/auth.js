@@ -12,20 +12,22 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    const hash = await bcrypt.hash(senha, 10);
+    // ✅ NORMALIZAR EMAIL E SENHA
+    const emailNormalizado = email.toLowerCase().trim();
+    const senhaTrimada = senha.trim();
+    
+    const hash = await bcrypt.hash(senhaTrimada, 10);
     const [result] = await db.execute(
       `INSERT INTO Usuario (nome, email, senha, telefone, data_nascimento, cpf, tipo_usuario)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [nome, email, hash, telefone, data_nascimento, cpf, tipo_usuario]
+      [nome, emailNormalizado, hash, telefone, data_nascimento, cpf, tipo_usuario]
     );
 
     const id = result.insertId;
 
-    // Cria perfil vazio conforme tipo
     if (tipo_usuario === 'cliente') {
       await db.execute('INSERT INTO Perfil_Cliente (id_usuario) VALUES (?)', [id]);
     } else {
-      // cref obrigatório para profissional
       const cref = req.body.cref || '';
       await db.execute(
         'INSERT INTO Perfil_Profissional (id_usuario, cref) VALUES (?, ?)',
@@ -34,12 +36,12 @@ router.post('/register', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id, nome, email, tipo_usuario },
+      { id, nome, email: emailNormalizado, tipo_usuario },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    res.status(201).json({ token, user: { id, nome, email, tipo_usuario } });
+    res.status(201).json({ token, user: { id, nome, email: emailNormalizado, tipo_usuario } });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ error: 'Email, CPF ou telefone já cadastrado' });
@@ -58,18 +60,25 @@ router.post('/login', async (req, res) => {
   }
 
   try {
+    // ✅ NORMALIZAR EMAIL E SENHA
+    const emailNormalizado = email.toLowerCase().trim();
+    const senhaTrimada = senha.trim();
+    
     const [rows] = await db.execute(
-      'SELECT * FROM Usuario WHERE email = ?', [email]
+      'SELECT * FROM Usuario WHERE email = ?', 
+      [emailNormalizado]  // ← EMAIL NORMALIZADO
     );
 
     if (!rows.length) {
+      console.log(`❌ Email não encontrado: ${emailNormalizado}`); // DEBUG
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
     const user = rows[0];
-    const match = await bcrypt.compare(senha, user.senha);
+    const match = await bcrypt.compare(senhaTrimada, user.senha);  // ← SENHA TRIMADA
 
     if (!match) {
+      console.log(`❌ Senha inválida para: ${emailNormalizado}`); // DEBUG
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
