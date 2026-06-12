@@ -8,7 +8,7 @@ CREATE TABLE Usuario (
     senha             VARCHAR(255)  NOT NULL,
     telefone          VARCHAR(20)   NOT NULL UNIQUE,
     data_nascimento   DATE          NOT NULL,
-    cpf               VARCHAR(14)   NOT NULL UNIQUE,
+    cpf VARCHAR(255) NULL UNIQUE,
     tipo_usuario      ENUM('cliente', 'profissional') NOT NULL
 );
 
