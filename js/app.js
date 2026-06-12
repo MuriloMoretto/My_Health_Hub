@@ -796,6 +796,7 @@ async function handleRegisterPro(e) {
     email:           document.getElementById('pro-email')?.value,
     senha:           document.getElementById('pro-password')?.value,
     telefone:        document.getElementById('pro-phone')?.value,
+    cpf: document.getElementById('pro-cpf')?.value || '000.000.000-00',
     data_nascimento: document.getElementById('pro-birth')?.value,
     cref:            document.getElementById('pro-cref')?.value,
     tipo_usuario:    'profissional',
