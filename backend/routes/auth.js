@@ -7,7 +7,12 @@ const db      = require('../db');
 router.post('/register', async (req, res) => {
   const { nome, email, senha, telefone, data_nascimento, cpf, tipo_usuario } = req.body;
 
-  if (!nome || !email || !senha || !telefone || !data_nascimento || !cpf || !tipo_usuario) {
+  // ✅ CPF é obrigatório SÓ para clientes
+  if (tipo_usuario === 'cliente' && !cpf) {
+    return res.status(400).json({ error: 'CPF é obrigatório para clientes' });
+  }
+
+  if (!nome || !email || !senha || !telefone || !data_nascimento || !tipo_usuario) {
     return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
   }
 
@@ -16,11 +21,14 @@ router.post('/register', async (req, res) => {
     const emailNormalizado = email.toLowerCase().trim();
     const senhaTrimada = senha.trim();
     
+    // ✅ Enviar NULL para profissionais
+    const cpfFinal = tipo_usuario === 'profissional' ? null : cpf;
+    
     const hash = await bcrypt.hash(senhaTrimada, 10);
     const [result] = await db.execute(
       `INSERT INTO Usuario (nome, email, senha, telefone, data_nascimento, cpf, tipo_usuario)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [nome, emailNormalizado, hash, telefone, data_nascimento, cpf, tipo_usuario]
+      [nome, emailNormalizado, hash, telefone, data_nascimento, cpfFinal, tipo_usuario]
     );
 
     const id = result.insertId;
